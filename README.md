@@ -30,6 +30,20 @@ Here is an example `docker-compose.yml` configuration showcasing a parent servic
 - **Child services**: Containers dependent on the parent or multiple other containers.
 - **Watchdog service**: Monitors health events and manages container restarts.
 
+
+### Example log entries
+```log
+Starting watchdog to monitor container health events...
+
+Thu Oct 24 20:04:18 UTC 2024 - Container: watchdog - Status: null
+Thu Oct 24 20:05:21 UTC 2024 - Container: parent - Status: null
+Thu Oct 24 20:05:21 UTC 2024 - Restarting dependent container: child_one
+Thu Oct 24 20:05:40 UTC 2024 - Container: child_one - Status: null
+Thu Oct 24 20:05:40 UTC 2024 - Restarting dependent container: child_two
+Thu Oct 24 20:05:59 UTC 2024 - Container: child_one - Status: null
+Thu Oct 24 20:06:02 UTC 2024 - Container: child_two - Status: null
+```
+
 ### Example
 
 ```yaml

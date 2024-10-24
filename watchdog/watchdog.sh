@@ -9,20 +9,21 @@ docker events --filter event=health_status --format "{{json .}}" | while read ev
 
   echo "$(date) - Container: $container - Status: $status"
 
-  # If a container becomes unhealthy, find all dependent containers
   if [ "$status" != "healthy" ]; then
-    # Search for containers with 'depends_on' labels containing the unhealthy container name
-    dependent_containers=$(docker ps --filter "label=depends_on" --format "{{.Names}}" | while read dep; do
-      labels=$(docker inspect --format '{{ index .Config.Labels "depends_on" }}' "$dep")
-      # Check if the unhealthy container is in the comma-separated list of dependencies
-      if [[ $labels == *"$container"* ]]; then
-        echo "$dep"
-      fi
-    done)
+    dependent_containers=()
 
-    # Restart all found dependent containers
-    for dep in $dependent_containers; do
+    # Collect dependent containers in an array
+    while read dep; do
+      labels=$(docker inspect --format '{{ index .Config.Labels "depends_on" }}' "$dep")
+      if [[ $labels == *"$container"* ]]; then
+        dependent_containers+=("$dep")
+      fi
+    done < <(docker ps --filter "label=depends_on" --format "{{.Names}}")
+
+    # Restart the dependent containers, suppressing output
+    for dep in "${dependent_containers[@]}"; do
       echo "$(date) - Restarting dependent container: $dep"
-      docker restart "$dep"
+      docker restart "$dep" > /dev/null 2>&1
     done
   fi
+done
