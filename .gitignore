@@ -1,0 +1,28 @@
+# Exclude everything
+*
+
+# Allow the .gitignore itself to be tracked
+!.gitignore
+
+# Include .gitkeep files in any directory
+!**/.gitkeep
+
+# Include specific files in the root
+!README.md
+!LICENSE
+!Dockerfile
+!docker-compose*.yml
+!watchdog.sh
+# Include all directories recursively
+!*/
+!**/
+!watchdog/*
+!watchdog/**
+# Exclude .vscode folder
+.vscode/
+.vscode/*
+
+# Include the .github
+!.github/
+!.github/**
+

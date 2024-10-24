@@ -1,0 +1,60 @@
+services:
+  # parent service
+  parent:
+    image: example:latest
+    container_name: parent
+    restart: always
+    healthcheck:
+      test: ["cmd", "your healtheck"]
+      interval: "15s"
+      retries: 2
+      start_period: "20s"
+      timeout: "10s"
+  # dependent service, single depedency
+  child_one:
+    image: example:latest
+    container_name: child_one
+    restart: always
+    labels:
+      - "depends_on=parent"
+    depends_on:
+      parent:
+        condition: service_healthy
+        restart: true
+    healthcheck:
+      test: ["cmd", "your healtheck"]
+      interval: "15s"
+      retries: 2
+      start_period: "20s"
+      timeout: "10s"
+  # depedent service, multiplke depedencies
+  child_two:
+    image: example:latest
+    container_name: child_two
+    restart: always
+    labels:
+      - "depends_on=parent,child_one"
+    depends_on:
+      parent:
+        condition: service_healthy
+        restart: true
+    healthcheck:
+      test: ["cmd", "your healtheck"]
+      interval: "15s"
+      retries: 2
+      start_period: "20s"
+      timeout: "10s"
+
+  # watchdog to restart dependent containers
+  watchdog:
+    build: ./watchdog
+    container_name: watchdog
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock # Access to Docker API
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f watchdog.sh || exit 1"]
+      interval: "15s"
+      retries: 2
+      start_period: "20s"
+      timeout: "10s"
