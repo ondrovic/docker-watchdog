@@ -2,14 +2,14 @@
 
 echo "Starting watchdog to monitor container health and restart events..."
 
-# Function to find and restart dependent containers
+# Function to restart dependent containers
 restart_dependent_containers() {
   local parent="$1"
-  echo "$(date) - Parent container $parent changed state. Restarting dependent containers..."
+  echo "Parent container $parent changed state. Restarting dependent containers..."
 
   dependent_containers=()
   
-  # Collect dependent containers
+  # Collect dependent containers based on labels
   while read dep; do
     labels=$(docker inspect --format '{{ index .Config.Labels "depends_on" }}' "$dep")
     if [[ $labels == *"$parent"* ]]; then
@@ -19,20 +19,26 @@ restart_dependent_containers() {
 
   # Restart dependent containers
   for dep in "${dependent_containers[@]}"; do
-    echo "$(date) - Restarting dependent container: $dep"
-    docker restart "$dep" > /dev/null 2>&1 || echo "$(date) - Failed to restart $dep" >&2
+    echo "Restarting dependent container: $dep"
+    docker restart "$dep" > /dev/null 2>&1 || echo "$(date +"%m-%d-%Y %I:%M:%S %p") - Failed to restart $dep" >&2
   done
 }
 
-# Monitor Docker events for both health status and container restarts
-docker events --filter event=health_status --filter event=restart --format "{{json .}}" | while read event; do
+# Monitor Docker events for health status and exit events
+docker events --filter event=health_status --filter event=die --format "{{json .}}" | while read event; do
   container=$(echo "$event" | jq -r '.Actor.Attributes.name')
-  status=$(docker inspect -f '{{.State.Health.Status}}' "$container")
+  action=$(echo "$event" | jq -r '.Action')
+  
+  # Get the container's current health status or state
+  status=$(docker inspect -f '{{.State.Health.Status}}' "$container" 2>/dev/null || echo "none")
+  state=$(docker inspect -f '{{.State.Status}}' "$container" 2>/dev/null)
 
-  echo "$(date) - Container: $container - Status: $status"
+  echo "Container: $container - Status: $status - State: $state - Action: $action"
 
-  # Restart dependent containers if the status is not healthy
-  if [ "$status" != "healthy" ]; then
+  # Restart dependent containers if:
+  # - Health status is not healthy
+  # - The container state is "exited" (regardless of exit code) or "dead"
+  if [ "$status" != "healthy" ] || [[ "$state" == "exited" || "$state" == "dead" ]]; then
     restart_dependent_containers "$container"
   fi
 done
