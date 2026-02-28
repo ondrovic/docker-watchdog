@@ -1,3 +1,4 @@
+## Has been replaced by this one https://github.com/ondrovic/watch-dog
 # Docker Watchdog README
 
 ## Overview
